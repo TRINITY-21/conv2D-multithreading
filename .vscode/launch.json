@@ -1,0 +1,21 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "MPI Debug",
+        "type": "cppdbg",
+        "request": "launch",
+        "program": "${workspaceFolder}/mpi_image_processing",
+        "args": ["input.bmp"],
+        "stopAtEntry": false,
+        "cwd": "${workspaceFolder}",
+        "environment": [
+          {
+            "name": "PATH",
+            "value": "${env:PATH}:/opt/homebrew/bin"
+          }
+        ],
+        "externalConsole": false
+      }
+    ]
+  }
