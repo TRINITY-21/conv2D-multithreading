@@ -1,22 +1,22 @@
 {
     "configurations": [
-        {
-            "name": "Mac",
-            "includePath": [
-                "${workspaceFolder}/**",
-                "/usr/local/include",
-                "/opt/homebrew/include",
-                "/opt/homebrew/Cellar/open-mpi/5.0.7/include"
-            ],
-            "defines": [],
-            "macFrameworkPath": [
-                "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks"
-            ],
-            "compilerPath": "/usr/bin/clang",
-            "cStandard": "c17",
-            "cppStandard": "c++17",
-            "intelliSenseMode": "macos-clang-arm64"
-        }
+      {
+        "name": "Mac",
+        "includePath": [
+          "${workspaceFolder}/**",
+          "/usr/local/include",
+          "/opt/homebrew/include",
+          "/opt/homebrew/opt/libomp/include" // OpenMP header
+        ],
+        "defines": [],
+        "macFrameworkPath": [
+          "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks"
+        ],
+        "compilerPath": "/opt/homebrew/opt/llvm/bin/clang", // LLVM Clang with OpenMP support
+        "cStandard": "c17",
+        "cppStandard": "c++17",
+        "intelliSenseMode": "macos-clang-arm64"
+      }
     ],
     "version": 4
-}
+  }
