@@ -4,21 +4,18 @@
 #include <time.h>
 #include <omp.h>
 
-#define BMP_HEADER_SIZE 54  // Standard BMP header size (for BMP images)
+#define BMP_HEADER_SIZE 54 
 
-// Declare global variables to store image data
 unsigned char *image = NULL;
 unsigned char *output_image = NULL;
 int width, height, stride;
 
-// Define a 3x3 convolution kernel for image sharpening
 int kernel[3][3] = {
-    { 0, -1, 0 },   // Top row: only attenuates the pixel above
-    { -1, 6, -1 },  // Middle row: emphasizes center pixel and attenuates horizontal neighbors
-    { 0, -1, 0 }    // Bottom row: only attenuates the pixel below
+    { 0, -1, 0 },  
+    { -1, 6, -1 },  
+    { 0, -1, 0 }    
 };
 
-// Function to read a BMP image file
 unsigned char* read_bmp(const char *filename) {
     printf("\n[Task 1: Reading BMP Image] - Started\n");
     
@@ -43,7 +40,7 @@ unsigned char* read_bmp(const char *filename) {
     return header;
 }
 
-// Function to apply convolution filter with RGB matrix approach to a specific row
+
 void process_row(int row) {
     // Create arrays for each color channel of this row
     int *red_values = (int *)malloc(width * sizeof(int));
@@ -55,68 +52,90 @@ void process_row(int row) {
         exit(1);
     }
 
-    // Process each color channel separately
-    for (int color = 0; color < 3; color++) {
-        // Select which array to use based on color channel
-        int *current_values;
-        if (color == 0) current_values = red_values;
-        else if (color == 1) current_values = green_values;
-        else current_values = blue_values;
-        
-        // Process each pixel in this row
-        for (int j = 0; j < width; j++) {
-            int sum = 0;
-            
-            // Apply the 3x3 convolution kernel
-            for (int ki = -1; ki <= 1; ki++) {
-                for (int kj = -1; kj <= 1; kj++) {
-                    int img_row = row + ki;
-                    int col = j + kj;
-                    
-                    // Handle boundary conditions with edge clamping
-                    if (img_row >= 0 && img_row < height && col >= 0 && col < width) {
-                        unsigned char pixel_value = image[img_row * stride + col * 3 + color];
-                        sum += pixel_value * kernel[ki + 1][kj + 1];
-                    }
-                    else {
-                        // For out-of-bounds pixels, use the value of the closest valid pixel
-                        int clamped_row = img_row < 0 ? 0 : (img_row >= height ? height - 1 : img_row);
-                        int clamped_col = col < 0 ? 0 : (col >= width ? width - 1 : col);
+    // Process each color channel in parallel
+    #pragma omp parallel sections
+    {
+        // Red channel
+        #pragma omp section
+        {
+            for (int j = 0; j < width; j++) {
+                int sum = 0;
+                for (int ki = -1; ki <= 1; ki++) {
+                    for (int kj = -1; kj <= 1; kj++) {
+                        int img_row = row + ki;
+                        int col = j + kj;
                         
-                        unsigned char pixel_value = image[clamped_row * stride + clamped_col * 3 + color];
-                        sum += pixel_value * kernel[ki + 1][kj + 1];
+                        if (img_row >= 0 && img_row < height && col >= 0 && col < width) {
+                            unsigned char pixel_value = image[img_row * stride + col * 3 + 0]; // Red channel
+                            sum += pixel_value * kernel[ki + 1][kj + 1];
+                        }
                     }
                 }
+                red_values[j] = sum;
             }
-            
-            // Store the convolution result in the appropriate array
-            current_values[j] = sum;
+        }
+
+        // Green channel
+        #pragma omp section
+        {
+            for (int j = 0; j < width; j++) {
+                int sum = 0;
+                for (int ki = -1; ki <= 1; ki++) {
+                    for (int kj = -1; kj <= 1; kj++) {
+                        int img_row = row + ki;
+                        int col = j + kj;
+                        
+                        if (img_row >= 0 && img_row < height && col >= 0 && col < width) {
+                            unsigned char pixel_value = image[img_row * stride + col * 3 + 1]; // Green channel
+                            sum += pixel_value * kernel[ki + 1][kj + 1];
+                        }
+                    }
+                }
+                green_values[j] = sum;
+            }
+        }
+
+        // Blue channel
+        #pragma omp section
+        {
+            for (int j = 0; j < width; j++) {
+                int sum = 0;
+                for (int ki = -1; ki <= 1; ki++) {
+                    for (int kj = -1; kj <= 1; kj++) {
+                        int img_row = row + ki;
+                        int col = j + kj;
+                        
+                        if (img_row >= 0 && img_row < height && col >= 0 && col < width) {
+                            unsigned char pixel_value = image[img_row * stride + col * 3 + 2]; // Blue channel
+                            sum += pixel_value * kernel[ki + 1][kj + 1];
+                        }
+                    }
+                }
+                blue_values[j] = sum;
+            }
         }
     }
     
     // Apply ReLU activation and store results in output image
     for (int j = 0; j < width; j++) {
-        // Get values from each channel array
         int red_val = red_values[j];
         int green_val = green_values[j];
         int blue_val = blue_values[j];
         
-        // Apply ReLU activation (clip values to 0-255 range)
         red_val = red_val < 0 ? 0 : (red_val > 255 ? 255 : red_val);
         green_val = green_val < 0 ? 0 : (green_val > 255 ? 255 : green_val);
         blue_val = blue_val < 0 ? 0 : (blue_val > 255 ? 255 : blue_val);
         
-        // Store the results in the output image
-        output_image[row * stride + j * 3] = (unsigned char)red_val;       // Red
-        output_image[row * stride + j * 3 + 1] = (unsigned char)green_val; // Green
-        output_image[row * stride + j * 3 + 2] = (unsigned char)blue_val;  // Blue
+        output_image[row * stride + j * 3] = (unsigned char)red_val;       
+        output_image[row * stride + j * 3 + 1] = (unsigned char)green_val; 
+        output_image[row * stride + j * 3 + 2] = (unsigned char)blue_val;  
     }
     
-    // Free the allocated memory
     free(red_values);
     free(green_values);
     free(blue_values);
 }
+
 
 // Function to apply the filter using OpenMP parallelism
 void apply_filter_parallel(int num_threads) {
@@ -125,13 +144,13 @@ void apply_filter_parallel(int num_threads) {
     // Set the number of threads to use
     omp_set_num_threads(num_threads);
     
-    // Dynamic schedule allows for better load balancing
-    #pragma omp parallel for schedule(dynamic, 16)
+    // Dynamic schedule
+    #pragma omp parallel for schedule(dynamic)
     for (int i = 0; i < height; i++) {
         // Process each row in parallel
         process_row(i);
         
-        // Optional: periodically report progress
+        // periodically report progress
         #pragma omp critical
         {
             if (i % 50 == 0 || i == height - 1) {
@@ -143,7 +162,6 @@ void apply_filter_parallel(int num_threads) {
     printf("[Task 2: Processing Image] - Completed\n");
 }
 
-// Function to save the processed image as a BMP file
 void save_bmp(const char *filename, unsigned char *header) {
     printf("\n[Task 3: Saving Processed BMP Image] - Started\n");
 
@@ -155,7 +173,6 @@ void save_bmp(const char *filename, unsigned char *header) {
     printf("[Task 3: Saving Processed BMP Image] - Completed\n");
 }
 
-// Main function - entry point of the program
 int main(int argc, char *argv[]) {
     double start_time, end_time;
     unsigned char *header = NULL;
@@ -170,20 +187,18 @@ int main(int argc, char *argv[]) {
     // Get the input filename from command line arguments
     const char *input_filename = argv[1];
     
-    // Set the number of threads (use command line or default to max available)
+    // Set the number of threads
     if (argc == 3) {
         num_threads = atoi(argv[2]);
     } else {
         num_threads = omp_get_max_threads();
     }
     
-    // Create a string for the output filename
     char output_filename[100];
     sprintf(output_filename, "output_openmp_%d_threads.bmp", num_threads);
     
     printf("\n[Program Start] OpenMP Image Processing Begins with %d threads\n", num_threads);
     
-    // Read the BMP image
     header = read_bmp(input_filename);
     if (!header) {
         printf("Error: Could not read input file\n");

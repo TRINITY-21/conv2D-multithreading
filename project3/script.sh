@@ -27,7 +27,7 @@ clang -Xpreprocessor -fopenmp -L$LIBOMP_PATH/lib -lomp -o openmp_image_processor
 > openmp_timing_results.txt
 
 # Input image file
-INPUT_FILE="sample3.bmp"
+INPUT_FILE="lena.bmp"
 
 # Check if input file exists
 if [ ! -f "$INPUT_FILE" ]; then
